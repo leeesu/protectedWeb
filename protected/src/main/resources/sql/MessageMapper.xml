@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MessageMapper">
+ 	
+ 	
+	<resultMap id="messageSelectMap" type="message">
+		<result property="messageNo"	column="message_no"		jdbcType="NUMERIC"/>
+		<result property="messageTitle"	column="message_title"		jdbcType="VARCHAR"/>
+		<result property="messageContent"	column="message_content"	jdbcType="VARCHAR"/>
+		<result property="senderNick"			column="sender_nick"		jdbcType="VARCHAR"/>
+		<result property="receiverNick"		column="receiver_nick"	jdbcType="VARCHAR"/>
+		<result property="sendDate"			column="send_date"	jdbcType="DATE"/>
+		<result property="receiveDate"		column="receive_date"	jdbcType="DATE"/>
+		<result property="messageStatus"		column="message_status"	jdbcType="CHAR"/>
+		<result property="delCode"			column="del_code"	jdbcType="CHAR"/>
+	</resultMap>
+	
+	<!-- SQL : INSERT -->
+	
+	<insert id="addMessage"	parameterType="message">
+		INSERT INTO message(message_no, message_title, message_content, sender_nick,
+		receiver_nick, send_date, message_status, del_code)
+		VALUES(seq_message_message_no.NEXTVAL, #{messageTitle}, #{messageContent}, #{senderNick}, 
+		#{receiverNick}, SYSDATE, #{messageStatus}, #{delCode})
+	</insert>
+
+	 
+	 <!-- SQL : SELECT ONE -->
+
+	<select id="getMessage"	parameterType="string"	resultMap="messageSelectMap">
+		SELECT
+		message_no, message_title, message_content, sender_nick, receiver_nick, send_date
+		FROM message
+		WHERE message_no=#{messageNo}
+	</select>
+	
+	<!-- SQL : SELECT UNREADED MESSAGE -->
+	
+	<select id="getUnreadMessage" parameterType="string" resultMap="messageSelectMap">
+		SELECT * FROM message
+		WHERE receiver_nick=#{receiverNick}
+		AND message_status=0
+	</select>
+	
+	
+	<!-- SQL : Update -->
+	
+	<update id="updateMessage" 	parameterType="message">
+		UPDATE message
+		<set>
+			message_status	= #{messageStatus},
+			receive_date	= SYSDATE
+		</set>
+		WHERE message_no=#{messageNo}
+	</update>
+		 
+	<!-- SQL : SELECT LIST -->
+	
+	<select id="getMessageList"		parameterType="map"	resultMap="messageSelectMap">
+		SELECT message_no, sender_nick, receiver_nick, message_title, message_content, send_date, receive_date, message_status
+		FROM( SELECT inner_table.*, ROWNUM AS row_seq
+			FROM( SELECT message_no, sender_nick, receiver_nick, message_title, message_content, send_date, receive_date, message_status
+				FROM message
+					<where>
+						<if test="searchCondition == 'all'">
+							(sender_nick=#{nickname} OR receiver_nick=#{nickname})
+							AND message_status != '2'
+						</if>
+						<if test="searchCondition == 'send'">
+							sender_nick=#{nickname} AND message_status != '2'
+						</if>
+						<if test="searchCondition == 'receive'">
+							receiver_nick=#{nickname} AND message_status != '2'
+						</if>
+						<if test="searchCondition == 'delete'">
+							(sender_nick=#{nickname} OR receiver_nick=#{nickname})
+							AND message_status='2'
+						</if>
+					</where>
+				ORDER BY send_date DESC) inner_table
+			WHERE ROWNUM &lt;=#{search.endRowNum} )
+		WHERE row_seq BETWEEN #{search.startRowNum} AND #{search.endRowNum}
+	</select>
+
+
+	<!-- SQL : SELECT ROW Count -->	 
+
+	<select  id="getSendTotalCount"		parameterType="map"	resultType="int">
+		SELECT COUNT(*)
+		FROM(	SELECT message_no, sender_nick, receiver_nick, message_title, send_date, receive_date, message_status
+			FROM message
+
+				WHERE sender_nick=#{senderNick}
+					<if test="searchCondition != null">
+						<if test="searchCondition==0 and searchKeyword !='' ">
+							AND receiver_nick=#{receiverNick}
+						</if>
+						<if test="searchCondition==1 and searchkeyword !='' ">
+							AND message_title=#{searchKeyword}
+						</if>
+					</if> 
+					) countTable						
+	</select>
+	
+	<select  id="getReceiveTotalCount" parameterType="string" resultType="int">
+		SELECT COUNT(*)
+		FROM(	SELECT message_no, sender_nick, receiver_nick, message_title, send_date, receive_date, message_status
+			FROM message
+
+				WHERE receiver_nick=#{receiverNick}
+				AND message_status=0
+					) countTable						
+	</select>
+	
+	<select  id="getTotalCount"		parameterType="map"	resultType="int">
+		SELECT COUNT(*)
+		FROM(	SELECT message_no, sender_nick, receiver_nick, message_title, message_content, send_date, receive_date, message_status
+			FROM message
+					<where>
+						<if test="searchCondition == 'all'">
+							(sender_nick=#{nickname} OR receiver_nick=#{nickname})
+							AND message_status != '2'
+						</if>
+						<if test="searchCondition == 'send'">
+							sender_nick=#{nickname} AND message_status != '2'
+						</if>
+						<if test="searchCondition == 'receive'">
+							receiver_nick=#{nickname} AND message_status != '2'
+						</if>
+						<if test="searchCondition == 'delete'">
+							(sender_nick=#{nickname} OR receiver_nick=#{nickname})
+							AND message_status='2'
+						</if>
+					</where>
+				) countTable						
+	</select>
+	 
+</mapper>

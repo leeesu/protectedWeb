@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="UsersMapper">
+ 	
+ 	
+	<resultMap id="usersSelectMap" type="users">
+		<result property="userNo"		column="user_no"		jdbcType="NUMERIC"/>
+		<result property="id"		column="id"		jdbcType="VARCHAR"/>
+		<result property="kakao"		column="kakao"		jdbcType="VARCHAR"/>
+		<result property="naver"		column="naver"		jdbcType="VARCHAR"/>
+		<result property="google"		column="google"		jdbcType="VARCHAR"/>
+		<result property="pw"		column="pw"		jdbcType="VARCHAR"/>
+		<result property="userName"	column="user_name"	jdbcType="VARCHAR"/>
+		<result property="nickname"	column="nickname"	jdbcType="VARCHAR"/>
+		<result property="email"		column="email"		jdbcType="VARCHAR"/>
+		<result property="phone"		column="phone"		jdbcType="NUMERIC"/>
+		<result property="userAddr"		column="user_addr"	jdbcType="VARCHAR"/>
+		<result property="account"		column="account"		jdbcType="VARCHAR"/>
+		<result property="birthDate"	column="birth_date"	jdbcType="NUMERIC"/>
+		<result property="gender"		column="gender"		jdbcType="CHAR"/>
+		<result property="levelPoint"	column="level_point"	jdbcType="NUMERIC"/>
+		<result property="accessDate"	column="access_date"	jdbcType="DATE"/>
+		<result property="accessIp" 	column="access_ip" 		jdbcType="VARCHAR"/>
+		<result property="role"		column="role"		jdbcType="VARCHAR"/>
+		<result property="purpose1"	column="purpose1"	jdbcType="VARCHAR"/>
+		<result property="purpose2"	column="purpose2"	jdbcType="VARCHAR"/>
+		<result property="purpose3"	column="purpose3"	jdbcType="VARCHAR"/>
+		<result property="profile"		column="profile"		jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<!-- SQL : INSERT -->
+	
+	<insert id="addUsersBase"	parameterType="users">
+		INSERT INTO users(user_no, id, kakao, naver, google, pw, user_name, nickname, 
+				level_point, role, purpose1, purpose2, purpose3)
+		VALUES(seq_users_user_no.NEXTVAL, #{id}, #{kakao:VARCHAR}, #{naver:VARCHAR}, #{google:VARCHAR},
+			#{pw}, #{userName}, #{nickname}, 0, 'user', #{purpose1:VARCHAR}, 
+			#{purpose2:VARCHAR}, #{purpose3:VARCHAR})
+	</insert>
+	<update id="addUsersAdditional"	parameterType="users">
+		UPDATE users
+		<set>
+			email=#{email:VARCHAR},
+			phone=#{phone:NUMERIC},
+			user_addr=#{userAddr:VARCHAR},
+			account=#{account:VARCHAR},
+			birth_date=#{birthDate:NUMERIC},
+			gender=#{gender:CHAR},
+			level_point=#{levelPoint:NUMERIC}
+		</set>
+		WHERE id=#{id}
+	</update>
+	<update id="addAccessInfo" parameterType="users">
+		UPDATE users
+		<set>
+			access_date=SYSDATE,
+			access_ip=#{accessIp}
+		</set>
+		WHERE id=#{id}
+	</update>
+	
+	<!-- SQL : SELECT SOCIAL -->
+
+	<select id="getKakao" 	parameterType="map" resultMap="usersSelectMap">
+		SELECT
+		id, pw, user_name, nickname, email, phone, user_addr, account, level_point, role, 
+		access_date, profile, kakao
+		FROM users
+		WHERE kakao=#{kakao}
+	</select>
+	
+	<select id="getGoogle" 	parameterType="map" resultMap="usersSelectMap">
+		SELECT
+		id, pw, user_name, nickname, email, phone, user_addr, account, level_point, role, 
+		access_date, profile, google
+		FROM users
+		WHERE google=#{google}
+	</select>
+	
+	<select id="getNaver" 	parameterType="map" resultMap="usersSelectMap">
+		SELECT
+		id, pw, user_name, nickname, email, phone, user_addr, account, level_point, role, 
+		access_date, profile, kakao
+		FROM users
+		WHERE naver=#{naver}
+	</select>
+	 
+	 <!-- SQL : SELECT ONE -->
+
+	<select id="getUsersById"	parameterType="string"	resultMap="usersSelectMap">
+		SELECT
+		id, pw, user_name, nickname, email, phone, user_addr, account, level_point, role, access_date, profile, birth_date
+		FROM users
+		WHERE id=#{id}
+	</select>
+	
+	<select id="getUsersByNick"	parameterType="string"	resultMap="usersSelectMap">
+		SELECT
+		id, pw, user_name, nickname, email, phone, user_addr, account, level_point, role, access_date, profile, birth_date
+		FROM users
+		WHERE nickname=#{nickname}
+	</select>
+	 
+
+	 <!-- SQL : UPDATE -->
+
+	<update id="updateUsers"	parameterType="users">
+		UPDATE users
+		<set>
+			id=#{id:VARCHAR},
+			pw=#{pw:VARCHAR},
+			nickname=#{nickname:VARCHAR},
+			email=#{email:VARCHAR},
+			phone=#{phone:NUMERIC},
+			user_addr=#{userAddr:VARCHAR},
+			birth_date=#{birthDate:NUMERIC},
+			profile=#{profile:VARCHAR},
+			level_point=#{levelPoint:NUMERIC},
+			gender=#{gender:VARCHAR}
+		</set>
+		WHERE id=#{id}
+	</update>
+		 
+	<!-- SQL : SELECT LIST -->
+	 	
+	<select id="getUsersList"	parameterType="search"	resultMap="usersSelectMap">
+		SELECT id, user_name, nickname, level_point
+		FROM( SELECT inner_table.*, ROWNUM AS row_seq
+			FROM( SELECT id, user_name, nickname, level_point
+				FROM users
+				<if test="searchCondition != null">
+					<where>
+						<if test="searchCondition==0 and searchKeyword !='' ">
+							id=#{searchKeyword}
+						</if>
+						<if test="searchCondition==1 and searchkeyword !='' ">
+							user_name=#{searchKeyword}
+						</if>
+						<if test="searchCondition==2 and searchkeyword !='' ">
+							nickname=#{searchKeyword}
+						</if>
+						<if test="searchCondition==3 and searchkeyword !='' ">
+							level=#{searchKeyword}
+						</if>
+					</where>
+				</if>
+				ORDER BY id ) inner_table
+			WHERE ROWNUM &lt;=#{endRowNum} )
+		WHERE row_seq BETWEEN #{startRowNum} AND #{endRowNum}
+	</select>
+
+
+	<!-- SQL : SELECT ROW Count -->	 
+
+	<select  id="getTotalCount"		parameterType="search"	resultType="int">
+		SELECT COUNT(*)
+		FROM(	SELECT id, user_name, nickname, level_point
+			FROM users
+			<if test="searchCondition != null">
+				<where>
+					<if test="searchCondition==0 and searchKeyword !='' ">
+						id=#{searchKeyword}
+					</if>
+					<if test="searchCondition==1 and searchkeyword !='' ">
+						user_name=#{searchKeyword}
+					</if>
+					<if test="searchCondition==2 and searchkeyword !='' ">
+						nickname=#{searchKeyword}
+					</if>
+					<if test="searchCondition==3 and searchkeyword !='' ">
+						level=#{searchKeyword}
+					</if>
+				</where>
+			</if> ) countTable						
+	</select>
+	 
+</mapper>

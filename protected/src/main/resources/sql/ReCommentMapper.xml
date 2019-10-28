@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ReCommentMapper">
+ 	
+ 	
+	<resultMap id="reCommentSelectMap" type="reComment">
+		<result property="commentNo" 			column="comment_no" 		jdbcType="NUMERIC" />
+		<result property="recommentNo"			column="recomment_no" 		jdbcType="NUMERIC" />
+		<result property="id" 					column="id"					jdbcType="VARCHAR" />
+		<result property="recommentContent" 	column="recomment_content"	jdbcType="VARCHAR" />
+		<result property="regDate" 				column="reg_date"			jdbcType="DATE"    />
+		<result property="nickName" 			column="nickname"			jdbcType="VARCHAR" />
+		<result property="postNo"				column="post_no"            jdbcType="NUMERIC" />
+		<result property="statusCode"			column="status_code"		jdbcType="CHAR" />
+	</resultMap>
+	
+	<!-- SQL : INSERT -->
+	<insert id="addReComment"	parameterType="reComment" >
+		 <selectKey keyProperty="recommentNo" resultType="int" order="BEFORE">
+	    SELECT seq_RECOMMENT_RECOMMENT_NO.nextval FROM DUAL
+	 	</selectKey>
+	INSERT INTO recomment( comment_no, recomment_no, id, recomment_content, reg_date, nickname, status_code, post_no) 
+	VALUES (#{commentNo}, #{recommentNo}, #{id}, #{recommentContent}, SYSDATE, #{nickName}, '1', #{postNo})
+	<!-- to_date(sysdate, 'yyyy/mm/dd hh:mi:ss') -->
+	</insert>
+	 
+	<select id="getReComment" parameterType="int" resultMap="reCommentSelectMap">
+		SELECT comment_no, recomment_no, id, recomment_content, reg_date, nickName , status_code
+		FROM recomment 
+		WHERE recomment_no = #{value}
+	</select>
+	
+	<update id="updateReComment" parameterType="reComment" >
+		UPDATE recomment
+		SET recomment_content = #{reCommentContent}
+		WHERE recomment_no = #{reCommentNo}
+	</update>
+	
+	<delete id="deleteReComment" parameterType="int">
+		DELETE 
+		FROM recomment
+		WHERE recomment_no = #{value}
+	</delete>
+	
+	<select id="listReComment" parameterType="map" resultMap="reCommentSelectMap">
+		SELECT *
+		FROM ( SELECT  inner_table.*, ROWNUM AS row_seq
+			   FROM (   SELECT comment_no, recomment_no, id, recomment_content, reg_date, nickname, status_code, post_no
+			    		FROM recomment 
+						WHERE post_no = #{postNo}
+						ORDER BY reg_date DESC ) inner_table
+			   WHERE 	ROWNUM &lt;= #{endRowNum} )
+		WHERE row_seq BETWEEN #{startRowNum} AND #{endRowNum}
+	 </select>
+	 
+	 <select id="getTotalCount" parameterType="int" resultType="int">
+	 	SELECT COUNT(*)
+	 	FROM (SELECT comment_no, recomment_no, id, recomment_content, reg_date, nickName 
+	 		  FROM recomment
+	 		  where post_no = #{value} ) count
+	 </select>
+	 
+</mapper>
